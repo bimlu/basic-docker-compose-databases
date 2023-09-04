@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: demo-mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DATABASE_NAME}
+    ports:
+      - "3306:3306"
+    networks:
+      - demo-network
+    volumes:
+      - mysql80-data:/var/lib/mysql
+    security_opt:
+      - seccomp:unconfined
+
+  mongo:
+    image: mongo:6.0.3
+    ports:
+      - '27017:27017'
+    container_name: demo-mongo-container
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DB_NAME}
+    networks:
+      - demo-network
+    volumes:
+      - mongo603-data:/data/db
+
+  rabbitmq3:
+    image: rabbitmq:3.8-management-alpine
+    container_name: demo-rabbit-container
+    hostname: 'rabbit'
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - '5672:5672'
+      - "15672:15672"
+    networks:
+      - demo-network
+    volumes:
+      - rabbit38-data:/var/lib/rabbitmq/mnesia/
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+    container_name: demo-elastic-container
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    mem_reservation: 1g
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - demo-network
+    volumes:
+      - es7110-data:/usr/share/elasticsearch/data
+
+  kibana:
+    container_name: demo-kibana-container
+    image: docker.elastic.co/kibana/kibana:7.11.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    external: true
+
+volumes:
+  mysql80-data:
+    driver: local
+  mongo603-data:
+    driver: local
+  es7110-data:
+    driver: local
+  rabbit38-data:
+    driver: local
